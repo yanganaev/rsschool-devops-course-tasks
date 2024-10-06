@@ -2,52 +2,54 @@ name: Terraform Deployment
 
 on:
   push:
-    branches:
-      - task_1  # Запускать на пушах в ветку main
+    branches: [task_1]
   pull_request:
-    branches:
-      - task_1  # Запускать на pull request'ах в ветку main
+    branches: [task_1]
 
 jobs:
-  terraform:
-    name: Terraform Plan and Apply
+  terraform-fmt:
     runs-on: ubuntu-latest
-
-    permissions:
-      id-token: write  # Для OIDC аутентификации
-      contents: read
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Terraform
+      - uses: actions/checkout@v3
+      - name: Terraform Format Check
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.6.6  # Укажи актуальную версию Terraform
+          terraform_version: 1.6.6
+      - name: Terraform Fmt
+        run: terraform fmt -check -recursive
 
-      # Устанавливаем AWS CLI для работы с AWS
-      - name: Install AWS CLI
-        run: sudo apt-get install -y awscli
+  terraform-plan:
+    needs: terraform-fmt
+    runs-on: ubuntu-latest
+    steps:
 
-      # Конфигурация OIDC для AWS
-      - name: Configure AWS Credentials for OIDC
-        uses: aws-actions/configure-aws-credentials@v2
+
+      - uses: actions/checkout@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionsRole  # Укажи ARN твоей IAM роли
-          aws-region: us-east-1  # Регион, который используешь
-          role-session-name: github-actions
-
-      # Инициализация Terraform
+          terraform_version: 1.6.6
       - name: Terraform Init
         run: terraform init
-
-      # Запуск terraform plan для проверки изменений
       - name: Terraform Plan
         run: terraform plan
 
-      # Опционально: Применение terraform apply только при пушах в ветку main
+  terraform-apply:
+    needs: terraform-plan
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GithubActionsRole
+          aws-region: us-east-1
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.6
+      - name: Terraform Init
+        run: terraform init
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve
-
