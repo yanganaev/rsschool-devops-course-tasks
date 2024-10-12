@@ -69,3 +69,27 @@ Create Terraform code to configure the following resources:
 
    ```bash
    terraform init
+   
+2. **Check the Terraform Plan**:
+    Execute the following command to review the resources that will be created:
+
+    ```bash
+    terraform plan
+    
+3. **Apply the Configuration**:
+   If the plan looks good, apply the configuration:
+
+   ```bash
+   terraform apply
+   
+4. **Confirm the Changes**:
+   Type ```yes``` when prompted to confirm the changes.
+
+5. **View Outputs**:
+   After applying the configuration, you can view the output variables to find useful information like the public IP of your Bastion Host.
+
+**Additional Information**
+Make sure to clean up your resources after testing to avoid incurring charges. 
+You can destroy all resources created by Terraform using:
+    
+    terraform destroy
